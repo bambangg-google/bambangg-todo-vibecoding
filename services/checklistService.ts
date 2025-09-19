@@ -1,53 +1,119 @@
-import { Category } from '../types';
+import { Category, ChecklistItem } from '../types';
 
-// In a real application, this service would make API calls to a backend server
-// that connects to a database like Cloud SQL. For this demonstration, we are
-// using the browser's localStorage to simulate a persistent data store.
-
-const LOCAL_STORAGE_KEY = 'intellilist-data';
-const API_LATENCY_MS = 300; // Simulate network delay
-
-/**
- * Fetches the checklist from the simulated backend (localStorage).
- * @returns A promise that resolves to the array of categories.
- */
-export const getChecklist = async (): Promise<Category[]> => {
-  console.log("Fetching checklist from service...");
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      try {
-        const savedData = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (savedData) {
-          const parsedData = JSON.parse(savedData);
-          if (Array.isArray(parsedData)) {
-            resolve(parsedData);
-          }
+export const findItemAndCategory = (categories: Category[], itemId: string): { item: ChecklistItem; category: Category } | null => {
+    for (const category of categories) {
+        const item = category.items.find(i => i.id === itemId);
+        if (item) {
+            return { item, category };
         }
-        resolve([]); // Resolve with empty array if no data or invalid data
-      } catch (error) {
-        console.error("Failed to load checklist from mock API (localStorage)", error);
-        resolve([]); // On error, return an empty list
-      }
-    }, API_LATENCY_MS);
-  });
+    }
+    return null;
 };
 
-/**
- * Saves the entire checklist to the simulated backend (localStorage).
- * @param data The array of categories to save.
- * @returns A promise that resolves when the save is complete.
- */
-export const saveChecklist = async (data: Category[]): Promise<void> => {
-    console.log("Saving checklist to service...");
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      try {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
-        resolve();
-      } catch (error) {
-        console.error("Failed to save checklist to mock API (localStorage)", error);
-        reject(new Error("Failed to save data."));
-      }
-    }, API_LATENCY_MS);
-  });
+export const addItems = (categories: Category[], newItems: string[]): Category[] => {
+    const updatedCategories = JSON.parse(JSON.stringify(categories));
+    if (newItems.length === 0) return updatedCategories;
+    
+    // Attempt to add to an "uncategorized" list if it exists, otherwise create one.
+    let targetCategory = updatedCategories.find((c: Category) => c.category.toLowerCase() === 'uncategorized');
+    if (!targetCategory) {
+        targetCategory = { category: 'Uncategorized', items: [] };
+        updatedCategories.push(targetCategory);
+    }
+    
+    newItems.forEach(itemText => {
+        targetCategory!.items.push({
+            id: crypto.randomUUID(),
+            text: itemText,
+            completed: false,
+        });
+    });
+
+    return updatedCategories;
+};
+
+
+export const removeItems = (categories: Category[], itemsToRemove: string[]): Category[] => {
+    if (itemsToRemove.length === 0) return categories;
+    
+    const lowercasedItemsToRemove = itemsToRemove.map(item => item.toLowerCase().trim());
+    
+    return categories.map(category => ({
+        ...category,
+        items: category.items.filter(item => 
+            !lowercasedItemsToRemove.includes(item.text.toLowerCase().trim())
+        ),
+    })).filter(category => category.items.length > 0);
+};
+
+
+export const toggleItem = (categories: Category[], categoryId: string, itemId: string): Category[] => {
+    return categories.map(category => {
+        if (category.category === categoryId) {
+            return {
+                ...category,
+                items: category.items.map(item =>
+                    item.id === itemId ? { ...item, completed: !item.completed } : item
+                ),
+            };
+        }
+        return category;
+    });
+};
+
+export const moveItem = (categories: Category[], itemId: string, sourceCategoryId: string, destCategoryId: string): Category[] => {
+    if (sourceCategoryId === destCategoryId) return categories;
+
+    const sourceCategory = categories.find(c => c.category === sourceCategoryId);
+    const destCategory = categories.find(c => c.category === destCategoryId);
+    const itemToMove = sourceCategory?.items.find(i => i.id === itemId);
+
+    if (!sourceCategory || !destCategory || !itemToMove) return categories;
+
+    let updatedCategories = categories.map(category => {
+        if (category.category === sourceCategoryId) {
+            return { ...category, items: category.items.filter(i => i.id !== itemId) };
+        }
+        if (category.category === destCategoryId) {
+            return { ...category, items: [...category.items, itemToMove] };
+        }
+        return category;
+    });
+    
+    // Remove empty source category
+    updatedCategories = updatedCategories.filter(c => c.items.length > 0);
+
+    return updatedCategories;
+};
+
+export const deleteItem = (categories: Category[], categoryId: string, itemId: string): Category[] => {
+    return categories
+        .map(category => {
+            if (category.category === categoryId) {
+                return {
+                    ...category,
+                    items: category.items.filter(item => item.id !== itemId),
+                };
+            }
+            return category;
+        })
+        .filter(category => category.items.length > 0); // Remove category if it becomes empty
+};
+
+export const deleteCategory = (categories: Category[], categoryId: string): Category[] => {
+    return categories.filter(category => category.category !== categoryId);
+};
+
+export const editItem = (categories: Category[], categoryId: string, itemId: string, newText: string): Category[] => {
+    return categories.map(category => {
+        if (category.category === categoryId) {
+            return {
+                ...category,
+                items: category.items.map(item =>
+                    item.id === itemId ? { ...item, text: newText } : item
+                ),
+            };
+        }
+        return category;
+    });
 };

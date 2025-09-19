@@ -80,52 +80,32 @@ export const generateChecklistFromText = async (text: string): Promise<Category[
     }
 };
 
-const urlResponseSchema = {
-    type: Type.ARRAY,
-    items: {
-        type: Type.OBJECT,
-        properties: {
-            category: {
-                type: Type.STRING,
-                description: "A supermarket aisle category, e.g., 'Produce' or 'Pantry Staples'."
-            },
-            items: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        quantity: {
-                            type: Type.STRING,
-                            description: "The amount or measurement of the ingredient, e.g., '1 cup', '2 tbsp', '100g'. If no quantity is specified in the recipe, you may leave this as an empty string."
-                        },
-                        ingredient: {
-                            type: Type.STRING,
-                            description: "The name of the ingredient, e.g., 'all-purpose flour' or 'large eggs'."
-                        },
-                    },
-                    required: ["quantity", "ingredient"],
-                },
-            },
-        },
-        required: ["category", "items"],
-    },
-};
-
-
 export const generateChecklistFromUrl = async (url: string): Promise<Category[]> => {
     try {
+        // Fix: Since `responseSchema` is not allowed with the `googleSearch` tool,
+        // the required JSON output structure is described directly in the prompt.
         const prompt = `
-        Access the recipe from the URL: "${url}"
-        Your primary task is to extract every single ingredient and its corresponding quantity. Do not omit any items or quantities.
-        After extracting, categorize all ingredients into a grocery list based on common supermarket aisles (e.g., Produce, Dairy & Eggs, Pantry Staples).
-        You MUST return the data in the exact JSON format specified by the schema. Ensure the 'quantity' field is always populated, even if it's just a number.
+        Access the recipe from the provided URL, extract every ingredient with its quantity, and organize them into a categorized grocery list.
+        The categories should be based on common supermarket aisles (e.g., "Produce", "Dairy & Eggs", "Pantry Staples").
+        You MUST return the data as a valid JSON array of objects.
+        
+        Each object in the array represents a category and must have two properties:
+        1. "category": A string for the aisle name.
+        2. "items": An array of ingredient objects.
+
+        Each ingredient object must have two properties:
+        1. "quantity": A string for the ingredient's amount (e.g., "1 cup", "2 tbsp").
+        2. "ingredient": A string for the name of the ingredient (e.g., "all-purpose flour").
+
+        Do not omit any ingredients.
+
+        Recipe URL: "${url}"
         `;
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: prompt,
             config: {
-                // Fix: `responseMimeType` and `responseSchema` are not allowed when using the `googleSearch` tool.
                 tools: [{googleSearch: {}}],
             },
         });
