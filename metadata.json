@@ -1,0 +1,7 @@
+{
+  "name": "IntelliList Assistant",
+  "description": "An intelligent assistant that transforms your unstructured thoughts and lists into a neatly organized and actionable checklist. Simply type what's on your mind, and let AI categorize it for you.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
