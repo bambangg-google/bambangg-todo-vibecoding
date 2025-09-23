@@ -193,7 +193,7 @@ export const InputForm: React.FC<InputFormProps> = ({ userInput, setUserInput, o
             <span>Thinking...</span>
           </>
         ) : hasExistingList ? (
-          "✨ Update Checklist"
+          "✨ Add to Checklist"
         ) : (
           "✨ Generate Smart Checklist"
         )}

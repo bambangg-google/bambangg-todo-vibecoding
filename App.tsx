@@ -77,7 +77,7 @@ const App: React.FC = () => {
             if (newCategories.length === 0) {
                 setError("Couldn't generate a checklist from your input. Please try again with more details or a different URL.");
             } else {
-                setCategories(newCategories);
+                setCategories(prev => checklistService.mergeCategories(prev, newCategories));
                 setUserInput('');
             }
         } catch (err) {

@@ -110,10 +110,14 @@ export const generateChecklistFromUrl = async (url: string): Promise<Category[]>
             },
         });
         
-        const jsonString = response.text;
+        let jsonString = response.text;
         if (!jsonString || jsonString.trim() === '' || jsonString.trim() === '[]') {
             return [];
         }
+        
+        // Fix: Clean the response to remove markdown code block fences (```json ... ```)
+        // that the model sometimes adds, which would otherwise cause a JSON parsing error.
+        jsonString = jsonString.replace(/^```json\s*/, '').replace(/```$/, '').trim();
 
         const parsedJson = JSON.parse(jsonString);
 

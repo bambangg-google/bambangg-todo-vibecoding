@@ -117,3 +117,32 @@ export const editItem = (categories: Category[], categoryId: string, itemId: str
         return category;
     });
 };
+
+export const mergeCategories = (existingCategories: Category[], newCategories: Category[]): Category[] => {
+    if (existingCategories.length === 0) {
+        return newCategories;
+    }
+    
+    const updatedCategories = JSON.parse(JSON.stringify(existingCategories));
+
+    newCategories.forEach(newCategory => {
+        const existingCategoryIndex = updatedCategories.findIndex(
+            (c: Category) => c.category.toLowerCase().trim() === newCategory.category.toLowerCase().trim()
+        );
+
+        if (existingCategoryIndex > -1) {
+            const existingCategory = updatedCategories[existingCategoryIndex];
+            const existingItemTexts = new Set(existingCategory.items.map((item: ChecklistItem) => item.text.toLowerCase().trim()));
+            
+            newCategory.items.forEach(newItem => {
+                if (!existingItemTexts.has(newItem.text.toLowerCase().trim())) {
+                    existingCategory.items.push(newItem);
+                }
+            });
+        } else {
+            updatedCategories.push(newCategory);
+        }
+    });
+
+    return updatedCategories;
+};
